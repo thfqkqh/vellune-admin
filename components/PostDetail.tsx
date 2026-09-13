@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { BoardPost } from "@/lib/types";
+import { AiButton } from "@/components/AiButton";
 
 type PostDetailProps = {
   postId: string;
@@ -13,6 +14,7 @@ export function PostDetail({ postId, onDeleted }: PostDetailProps) {
   const [reply, setReply] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -58,6 +60,45 @@ export function PostDetail({ postId, onDeleted }: PostDetailProps) {
       cancelled = true;
     };
   }, [postId]);
+
+  const handleAiSuggest = useCallback(async () => {
+    if (!post) return;
+
+    setAiLoading(true);
+    setMessage("");
+    setError("");
+
+    try {
+      const response = await fetch("/api/ai/board-reply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: post.title,
+          content: post.content,
+          authorEmail: post.authorEmail,
+          createdAt: post.createdAt,
+          existingReplies: post.replies.map((item) => item.content),
+        }),
+      });
+
+      const result = (await response.json()) as {
+        success?: boolean;
+        suggestion?: string;
+        error?: string;
+      };
+
+      if (!response.ok || !result.success || !result.suggestion) {
+        throw new Error(result.error ?? "AI suggestion failed.");
+      }
+
+      setReply(result.suggestion);
+      setMessage("AI reply draft applied. Review and post when ready.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "AI suggestion failed.");
+    } finally {
+      setAiLoading(false);
+    }
+  }, [post]);
 
   const handleReply = async () => {
     if (!post) return;
@@ -195,9 +236,12 @@ export function PostDetail({ postId, onDeleted }: PostDetailProps) {
       </div>
 
       <div>
-        <label htmlFor="admin-reply" className="mb-2 block text-sm font-medium">
-          Admin Reply
-        </label>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <label htmlFor="admin-reply" className="text-sm font-medium">
+            Admin Reply
+          </label>
+          <AiButton onClick={handleAiSuggest} loading={aiLoading} />
+        </div>
         <textarea
           id="admin-reply"
           rows={4}

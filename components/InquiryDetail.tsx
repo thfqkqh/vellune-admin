@@ -1,18 +1,27 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Inquiry, InquiryStatus } from "@/lib/types";
 import { STATUS_OPTIONS } from "@/lib/types";
+import { AiButton } from "@/components/AiButton";
 
 type InquiryDetailProps = {
   inquiry: Inquiry;
   onUpdated: (inquiry: Inquiry) => void;
+  aiTrigger?: string | null;
+  onAiTriggered?: () => void;
 };
 
-export function InquiryDetail({ inquiry, onUpdated }: InquiryDetailProps) {
+export function InquiryDetail({
+  inquiry,
+  onUpdated,
+  aiTrigger,
+  onAiTriggered,
+}: InquiryDetailProps) {
   const [status, setStatus] = useState<InquiryStatus>(inquiry.status);
   const [notes, setNotes] = useState(inquiry.notes);
   const [saving, setSaving] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -22,6 +31,57 @@ export function InquiryDetail({ inquiry, onUpdated }: InquiryDetailProps) {
     setMessage("");
     setError("");
   }, [inquiry]);
+
+  const handleAiSuggest = useCallback(async () => {
+    setAiLoading(true);
+    setMessage("");
+    setError("");
+
+    try {
+      const response = await fetch("/api/ai/inquiry-notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: inquiry.id,
+          date: inquiry.date,
+          type: inquiry.type,
+          company: inquiry.company,
+          name: inquiry.name,
+          email: inquiry.email,
+          phone: inquiry.phone,
+          message: inquiry.message,
+          status,
+          notes,
+        }),
+      });
+
+      const result = (await response.json()) as {
+        success?: boolean;
+        suggestion?: string;
+        error?: string;
+      };
+
+      if (!response.ok || !result.success || !result.suggestion) {
+        throw new Error(result.error ?? "AI suggestion failed.");
+      }
+
+      setNotes(result.suggestion);
+      setMessage("AI draft applied to notes. Review and save when ready.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "AI suggestion failed.");
+    } finally {
+      setAiLoading(false);
+    }
+  }, [inquiry, notes, status]);
+
+  useEffect(() => {
+    if (!aiTrigger || aiTrigger !== inquiry.id) return;
+
+    void handleAiSuggest().finally(() => {
+      onAiTriggered?.();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once per aiTrigger
+  }, [aiTrigger, inquiry.id]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -97,9 +157,12 @@ export function InquiryDetail({ inquiry, onUpdated }: InquiryDetailProps) {
       </div>
 
       <div>
-        <label htmlFor="notes" className="mb-2 block text-sm font-medium">
-          Notes / 비고 (K열)
-        </label>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <label htmlFor="notes" className="text-sm font-medium">
+            Notes / 비고 (K열)
+          </label>
+          <AiButton onClick={handleAiSuggest} loading={aiLoading} />
+        </div>
         <textarea
           id="notes"
           rows={5}

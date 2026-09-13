@@ -5,6 +5,7 @@ import type { Inquiry, InquiryStatus } from "@/lib/types";
 import { STATUS_COLORS, STATUS_OPTIONS } from "@/lib/types";
 import { InquiryDetail } from "@/components/InquiryDetail";
 import { BoardManager } from "@/components/BoardManager";
+import { AiButton } from "@/components/AiButton";
 
 type AdminTab = "inquiries" | "board";
 
@@ -24,6 +25,7 @@ export function AdminDashboard() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [aiInquiryTrigger, setAiInquiryTrigger] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadSession() {
@@ -225,35 +227,50 @@ export function AdminDashboard() {
 
             <div className="space-y-3">
               {filteredInquiries.map((inquiry) => (
-                <button
+                <div
                   key={inquiry.id}
-                  type="button"
-                  onClick={() => setSelectedId(inquiry.id)}
-                  className={`w-full rounded-lg border p-4 text-left transition ${
+                  className={`flex gap-2 rounded-lg border p-2 transition ${
                     selectedInquiry?.id === inquiry.id
                       ? "border-accent bg-accent/5"
-                      : "border-black/10 hover:bg-black/[0.02]"
+                      : "border-black/10"
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-xs tracking-[0.2em] text-muted">
-                        {inquiry.id}
-                      </p>
-                      <p className="mt-1 font-medium">{inquiry.name}</p>
-                      <p className="text-sm text-muted">{inquiry.email}</p>
+                  <AiButton
+                    className="self-start mt-2"
+                    loading={
+                      aiInquiryTrigger === inquiry.id &&
+                      selectedInquiry?.id === inquiry.id
+                    }
+                    onClick={() => {
+                      setSelectedId(inquiry.id);
+                      setAiInquiryTrigger(inquiry.id);
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setSelectedId(inquiry.id)}
+                    className="min-w-0 flex-1 rounded-md p-2 text-left transition hover:bg-black/[0.02]"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs tracking-[0.2em] text-muted">
+                          {inquiry.id}
+                        </p>
+                        <p className="mt-1 font-medium">{inquiry.name}</p>
+                        <p className="text-sm text-muted">{inquiry.email}</p>
+                      </div>
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_COLORS[inquiry.status]}`}
+                      >
+                        {inquiry.status}
+                      </span>
                     </div>
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_COLORS[inquiry.status]}`}
-                    >
-                      {inquiry.status}
-                    </span>
-                  </div>
-                  <p className="mt-3 line-clamp-2 text-sm text-muted">
-                    {inquiry.message}
-                  </p>
-                  <p className="mt-2 text-xs text-muted">{inquiry.date}</p>
-                </button>
+                    <p className="mt-3 line-clamp-2 text-sm text-muted">
+                      {inquiry.message}
+                    </p>
+                    <p className="mt-2 text-xs text-muted">{inquiry.date}</p>
+                  </button>
+                </div>
               ))}
             </div>
           </section>
@@ -263,6 +280,8 @@ export function AdminDashboard() {
               <InquiryDetail
                 inquiry={selectedInquiry}
                 onUpdated={handleUpdated}
+                aiTrigger={aiInquiryTrigger}
+                onAiTriggered={() => setAiInquiryTrigger(null)}
               />
             ) : (
               <p className="text-sm text-muted">
