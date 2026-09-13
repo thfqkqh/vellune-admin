@@ -1,5 +1,5 @@
 import type { BoardPost, PostReply } from "./types";
-import { createSupabaseAdmin } from "./supabase/server";
+import { createSupabaseAdmin } from "./supabase/admin";
 
 type PostRow = {
   id: string;

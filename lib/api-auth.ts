@@ -1,13 +1,19 @@
 import { NextResponse } from "next/server";
-import { verifySession } from "./auth";
+import { isAdminUser } from "./auth";
+import { createSupabaseServerClient } from "./supabase/server";
 
 export async function requireAdminApi() {
-  const ok = await verifySession();
-  if (!ok) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!isAdminUser(user)) {
     return NextResponse.json(
       { success: false, error: "Unauthorized" },
       { status: 401 },
     );
   }
+
   return null;
 }

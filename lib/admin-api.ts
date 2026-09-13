@@ -3,7 +3,7 @@ import {
   createSupabaseAdmin,
   mapInquiryRow,
   type InquiryRow,
-} from "./supabase/server";
+} from "./supabase/admin";
 
 export async function fetchInquiries(): Promise<Inquiry[]> {
   const supabase = createSupabaseAdmin();
