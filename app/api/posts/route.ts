@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { requireAdminApi } from "@/lib/api-auth";
+import { requireBoardApi } from "@/lib/api-auth";
 import { fetchPosts } from "@/lib/posts-api";
 
 export async function GET() {
-  const unauthorized = await requireAdminApi();
-  if (unauthorized) return unauthorized;
+  const { error } = await requireBoardApi();
+  if (error) return error;
 
   try {
     const posts = await fetchPosts();

@@ -1,15 +1,19 @@
 import { NextResponse } from "next/server";
+import { requireInquiriesApi } from "@/lib/api-auth";
 import { fetchInquiries } from "@/lib/admin-api";
 
 export async function GET() {
+  const { error } = await requireInquiriesApi();
+  if (error) return error;
+
   try {
     const inquiries = await fetchInquiries();
     return NextResponse.json({ success: true, inquiries });
-  } catch (error) {
+  } catch (err) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Failed to load inquiries.",
+        error: err instanceof Error ? err.message : "Failed to load inquiries.",
       },
       { status: 500 },
     );

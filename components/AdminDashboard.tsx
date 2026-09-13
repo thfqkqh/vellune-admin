@@ -8,7 +8,15 @@ import { BoardManager } from "@/components/BoardManager";
 
 type AdminTab = "inquiries" | "board";
 
+type AdminUser = {
+  email: string;
+  roleLabel: string;
+  canAccessInquiries: boolean;
+  canAccessBoard: boolean;
+};
+
 export function AdminDashboard() {
+  const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
   const [activeTab, setActiveTab] = useState<AdminTab>("inquiries");
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -16,6 +24,31 @@ export function AdminDashboard() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function loadSession() {
+      const response = await fetch("/api/me");
+      const result = (await response.json()) as {
+        success?: boolean;
+        user?: AdminUser;
+      };
+
+      if (!response.ok || !result.success || !result.user) {
+        window.location.href = "/login";
+        return;
+      }
+
+      setAdminUser(result.user);
+
+      if (result.user.canAccessInquiries) {
+        setActiveTab("inquiries");
+      } else if (result.user.canAccessBoard) {
+        setActiveTab("board");
+      }
+    }
+
+    loadSession();
+  }, []);
 
   const loadInquiries = useCallback(async () => {
     setLoading(true);
@@ -42,8 +75,10 @@ export function AdminDashboard() {
   }, []);
 
   useEffect(() => {
-    loadInquiries();
-  }, [loadInquiries]);
+    if (adminUser?.canAccessInquiries && activeTab === "inquiries") {
+      loadInquiries();
+    }
+  }, [adminUser, activeTab, loadInquiries]);
 
   const filteredInquiries = useMemo(() => {
     return inquiries.filter((inquiry) => {
@@ -78,6 +113,17 @@ export function AdminDashboard() {
     window.location.href = "/login";
   };
 
+  if (!adminUser) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-sm text-muted">
+        Loading admin session...
+      </div>
+    );
+  }
+
+  const showInquiriesTab = adminUser.canAccessInquiries;
+  const showBoardTab = adminUser.canAccessBoard;
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-black/10 bg-white">
@@ -85,9 +131,12 @@ export function AdminDashboard() {
           <div>
             <p className="text-xs tracking-[0.35em] text-muted">VELLUNE ADMIN</p>
             <h1 className="text-xl font-medium">Admin Console</h1>
+            <p className="mt-1 text-sm text-muted">
+              {adminUser.email} · {adminUser.roleLabel}
+            </p>
           </div>
           <div className="flex items-center gap-3">
-            {activeTab === "inquiries" && (
+            {activeTab === "inquiries" && showInquiriesTab && (
               <button
                 type="button"
                 onClick={loadInquiries}
@@ -105,107 +154,127 @@ export function AdminDashboard() {
             </button>
           </div>
         </div>
-        <div className="mx-auto flex max-w-7xl gap-2 px-6 pb-4">
-          <button
-            type="button"
-            onClick={() => setActiveTab("inquiries")}
-            className={`rounded-md px-4 py-2 text-sm transition ${
-              activeTab === "inquiries"
-                ? "bg-foreground text-background"
-                : "border border-black/10 hover:bg-black/5"
-            }`}
-          >
-            Inquiries
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("board")}
-            className={`rounded-md px-4 py-2 text-sm transition ${
-              activeTab === "board"
-                ? "bg-foreground text-background"
-                : "border border-black/10 hover:bg-black/5"
-            }`}
-          >
-            Board
-          </button>
-        </div>
-      </header>
 
-      {activeTab === "board" ? (
-        <BoardManager />
-      ) : (
-      <main className="mx-auto grid max-w-7xl gap-6 px-6 py-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <section className="rounded-xl border border-black/10 bg-white p-5">
-          <div className="mb-5 flex flex-col gap-3 sm:flex-row">
-            <input
-              type="search"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search by name, email, ID, message..."
-              className="flex-1 rounded-md border border-black/10 px-4 py-2 text-sm outline-none focus:border-accent"
-            />
-            <select
-              value={statusFilter}
-              onChange={(event) =>
-                setStatusFilter(event.target.value as InquiryStatus | "ALL")
-              }
-              className="rounded-md border border-black/10 px-4 py-2 text-sm outline-none focus:border-accent"
-            >
-              <option value="ALL">All Status</option>
-              {STATUS_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {loading && <p className="text-sm text-muted">Loading inquiries...</p>}
-          {error && <p className="text-sm text-red-600">{error}</p>}
-
-          {!loading && !error && filteredInquiries.length === 0 && (
-            <p className="text-sm text-muted">No inquiries found.</p>
-          )}
-
-          <div className="space-y-3">
-            {filteredInquiries.map((inquiry) => (
+        {(showInquiriesTab || showBoardTab) && (
+          <div className="mx-auto flex max-w-7xl gap-2 px-6 pb-4">
+            {showInquiriesTab && (
               <button
-                key={inquiry.id}
                 type="button"
-                onClick={() => setSelectedId(inquiry.id)}
-                className={`w-full rounded-lg border p-4 text-left transition ${
-                  selectedInquiry?.id === inquiry.id
-                    ? "border-accent bg-accent/5"
-                    : "border-black/10 hover:bg-black/[0.02]"
+                onClick={() => setActiveTab("inquiries")}
+                className={`rounded-md px-4 py-2 text-sm transition ${
+                  activeTab === "inquiries"
+                    ? "bg-foreground text-background"
+                    : "border border-black/10 hover:bg-black/5"
                 }`}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs tracking-[0.2em] text-muted">{inquiry.id}</p>
-                    <p className="mt-1 font-medium">{inquiry.name}</p>
-                    <p className="text-sm text-muted">{inquiry.email}</p>
-                  </div>
-                  <span
-                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_COLORS[inquiry.status]}`}
-                  >
-                    {inquiry.status}
-                  </span>
-                </div>
-                <p className="mt-3 line-clamp-2 text-sm text-muted">{inquiry.message}</p>
-                <p className="mt-2 text-xs text-muted">{inquiry.date}</p>
+                Inquiries
               </button>
-            ))}
+            )}
+            {showBoardTab && (
+              <button
+                type="button"
+                onClick={() => setActiveTab("board")}
+                className={`rounded-md px-4 py-2 text-sm transition ${
+                  activeTab === "board"
+                    ? "bg-foreground text-background"
+                    : "border border-black/10 hover:bg-black/5"
+                }`}
+              >
+                Board
+              </button>
+            )}
           </div>
-        </section>
+        )}
+      </header>
 
-        <section className="rounded-xl border border-black/10 bg-white p-5">
-          {selectedInquiry ? (
-            <InquiryDetail inquiry={selectedInquiry} onUpdated={handleUpdated} />
-          ) : (
-            <p className="text-sm text-muted">Select an inquiry to view details.</p>
-          )}
-        </section>
-      </main>
+      {activeTab === "board" && showBoardTab ? (
+        <BoardManager />
+      ) : showInquiriesTab ? (
+        <main className="mx-auto grid max-w-7xl gap-6 px-6 py-6 lg:grid-cols-[1.1fr_0.9fr]">
+          <section className="rounded-xl border border-black/10 bg-white p-5">
+            <div className="mb-5 flex flex-col gap-3 sm:flex-row">
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search by name, email, ID, message..."
+                className="flex-1 rounded-md border border-black/10 px-4 py-2 text-sm outline-none focus:border-accent"
+              />
+              <select
+                value={statusFilter}
+                onChange={(event) =>
+                  setStatusFilter(event.target.value as InquiryStatus | "ALL")
+                }
+                className="rounded-md border border-black/10 px-4 py-2 text-sm outline-none focus:border-accent"
+              >
+                <option value="ALL">All Status</option>
+                {STATUS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {loading && <p className="text-sm text-muted">Loading inquiries...</p>}
+            {error && <p className="text-sm text-red-600">{error}</p>}
+
+            {!loading && !error && filteredInquiries.length === 0 && (
+              <p className="text-sm text-muted">No inquiries found.</p>
+            )}
+
+            <div className="space-y-3">
+              {filteredInquiries.map((inquiry) => (
+                <button
+                  key={inquiry.id}
+                  type="button"
+                  onClick={() => setSelectedId(inquiry.id)}
+                  className={`w-full rounded-lg border p-4 text-left transition ${
+                    selectedInquiry?.id === inquiry.id
+                      ? "border-accent bg-accent/5"
+                      : "border-black/10 hover:bg-black/[0.02]"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs tracking-[0.2em] text-muted">
+                        {inquiry.id}
+                      </p>
+                      <p className="mt-1 font-medium">{inquiry.name}</p>
+                      <p className="text-sm text-muted">{inquiry.email}</p>
+                    </div>
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_COLORS[inquiry.status]}`}
+                    >
+                      {inquiry.status}
+                    </span>
+                  </div>
+                  <p className="mt-3 line-clamp-2 text-sm text-muted">
+                    {inquiry.message}
+                  </p>
+                  <p className="mt-2 text-xs text-muted">{inquiry.date}</p>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="rounded-xl border border-black/10 bg-white p-5">
+            {selectedInquiry ? (
+              <InquiryDetail
+                inquiry={selectedInquiry}
+                onUpdated={handleUpdated}
+              />
+            ) : (
+              <p className="text-sm text-muted">
+                Select an inquiry to view details.
+              </p>
+            )}
+          </section>
+        </main>
+      ) : (
+        <main className="mx-auto max-w-7xl px-6 py-6">
+          <p className="text-sm text-muted">No accessible admin sections.</p>
+        </main>
       )}
     </div>
   );

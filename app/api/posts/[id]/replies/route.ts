@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdminApi } from "@/lib/api-auth";
+import { requireBoardApi } from "@/lib/api-auth";
 import { createAdminReply } from "@/lib/posts-api";
 
 type RouteContext = {
@@ -7,8 +7,8 @@ type RouteContext = {
 };
 
 export async function POST(request: Request, context: RouteContext) {
-  const unauthorized = await requireAdminApi();
-  if (unauthorized) return unauthorized;
+  const { error } = await requireBoardApi();
+  if (error) return error;
 
   try {
     const { id } = await context.params;

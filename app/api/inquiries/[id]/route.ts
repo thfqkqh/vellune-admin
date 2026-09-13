@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireInquiriesApi } from "@/lib/api-auth";
 import { updateInquiry } from "@/lib/admin-api";
 import type { InquiryStatus } from "@/lib/types";
 
@@ -7,6 +8,9 @@ type RouteContext = {
 };
 
 export async function PATCH(request: Request, context: RouteContext) {
+  const { error } = await requireInquiriesApi();
+  if (error) return error;
+
   try {
     const { id } = await context.params;
     const body = (await request.json()) as {
