@@ -1,5 +1,4 @@
 export type Inquiry = {
-  rowIndex: number;
   id: string;
   date: string;
   type: string;

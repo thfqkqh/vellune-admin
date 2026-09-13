@@ -7,7 +7,7 @@ export default function LoginPage() {
         <p className="text-xs tracking-[0.35em] text-muted">VELLUNE ADMIN</p>
         <h1 className="mt-2 text-2xl font-medium">Sign in to manage inquiries</h1>
         <p className="mt-2 text-sm text-muted">
-          Google Sheets에 저장된 인바운드 문의를 관리합니다.
+          Supabase에 저장된 인바운드 문의를 관리합니다.
         </p>
         <div className="mt-8">
           <LoginForm />
