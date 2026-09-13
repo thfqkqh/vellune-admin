@@ -52,7 +52,7 @@ export function LoginForm() {
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           className="w-full rounded-md border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:border-accent"
-          placeholder="admin@example.com"
+          placeholder="admin1@naver.com"
           required
         />
       </div>
