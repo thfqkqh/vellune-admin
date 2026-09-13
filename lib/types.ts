@@ -27,3 +27,20 @@ export const STATUS_COLORS: Record<InquiryStatus, string> = {
   REPLIED: "bg-purple-100 text-purple-800",
   COMPLETED: "bg-green-100 text-green-800",
 };
+
+export type PostReply = {
+  id: string;
+  postId: string;
+  content: string;
+  isAdmin: boolean;
+  createdAt: string;
+};
+
+export type BoardPost = {
+  id: string;
+  title: string;
+  content: string;
+  authorEmail: string;
+  createdAt: string;
+  replies: PostReply[];
+};

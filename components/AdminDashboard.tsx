@@ -4,8 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Inquiry, InquiryStatus } from "@/lib/types";
 import { STATUS_COLORS, STATUS_OPTIONS } from "@/lib/types";
 import { InquiryDetail } from "@/components/InquiryDetail";
+import { BoardManager } from "@/components/BoardManager";
+
+type AdminTab = "inquiries" | "board";
 
 export function AdminDashboard() {
+  const [activeTab, setActiveTab] = useState<AdminTab>("inquiries");
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<InquiryStatus | "ALL">("ALL");
@@ -80,16 +84,18 @@ export function AdminDashboard() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
           <div>
             <p className="text-xs tracking-[0.35em] text-muted">VELLUNE ADMIN</p>
-            <h1 className="text-xl font-medium">Inbound Inquiry Manager</h1>
+            <h1 className="text-xl font-medium">Admin Console</h1>
           </div>
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={loadInquiries}
-              className="rounded-md border border-black/10 px-4 py-2 text-sm transition hover:bg-black/5"
-            >
-              Refresh
-            </button>
+            {activeTab === "inquiries" && (
+              <button
+                type="button"
+                onClick={loadInquiries}
+                className="rounded-md border border-black/10 px-4 py-2 text-sm transition hover:bg-black/5"
+              >
+                Refresh
+              </button>
+            )}
             <button
               type="button"
               onClick={handleLogout}
@@ -99,8 +105,35 @@ export function AdminDashboard() {
             </button>
           </div>
         </div>
+        <div className="mx-auto flex max-w-7xl gap-2 px-6 pb-4">
+          <button
+            type="button"
+            onClick={() => setActiveTab("inquiries")}
+            className={`rounded-md px-4 py-2 text-sm transition ${
+              activeTab === "inquiries"
+                ? "bg-foreground text-background"
+                : "border border-black/10 hover:bg-black/5"
+            }`}
+          >
+            Inquiries
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("board")}
+            className={`rounded-md px-4 py-2 text-sm transition ${
+              activeTab === "board"
+                ? "bg-foreground text-background"
+                : "border border-black/10 hover:bg-black/5"
+            }`}
+          >
+            Board
+          </button>
+        </div>
       </header>
 
+      {activeTab === "board" ? (
+        <BoardManager />
+      ) : (
       <main className="mx-auto grid max-w-7xl gap-6 px-6 py-6 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="rounded-xl border border-black/10 bg-white p-5">
           <div className="mb-5 flex flex-col gap-3 sm:flex-row">
@@ -173,6 +206,7 @@ export function AdminDashboard() {
           )}
         </section>
       </main>
+      )}
     </div>
   );
 }
